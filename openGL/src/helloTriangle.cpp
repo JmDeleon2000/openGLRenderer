@@ -3,16 +3,34 @@
 #include <string>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <glm.hpp>
+#include <gtc/matrix_transform.hpp>
+#include <gtc/type_ptr.hpp>
+
 
 using namespace std;
-
+//rendering
 const int screen_height = 1080;
 const int screen_width = 1920;
 const char* vertexShdFile = "vertex.glsl";
 const char* fragmentShdFile = "fragment.glsl";
+//object
+glm::vec3 objectPos = glm::vec3(0, 0, -10);
+glm::vec3 objectRot = glm::vec3(0, 0, 0);
+glm::vec3 objectScl = glm::vec3(1, 1, 1);
+glm::mat4 objMatrix;
+//camera
+glm::vec3 camPos = glm::vec3(0, 0, 0);
+glm::vec3 camRot = glm::vec3(0, 0, 0);
+glm::mat4 projection;
+glm::mat4 viewMatrix;
+
+float pitch = 0, yaw = 0, roll = 0;
 
 void input(GLFWwindow* w);
 bool compileShader(const char* src, unsigned int shader);
+void updateModelMatrix();
+void updateViewMatrix();
 
 //https://www.youtube.com/watch?v=OR4fNpBjmq8
 int main(void) 
@@ -86,6 +104,12 @@ int main(void)
 	glEnableVertexAttribArray(1);
 	glBindVertexArray(0);
 
+	//camera
+	projection = glm::perspective<float>(glm::radians(60.0f), 
+								screen_width/screen_height,
+								0.1,
+								1000);
+
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -100,6 +124,12 @@ int main(void)
 		glUseProgram(shdProgram);
 		glBindVertexArray(VAO);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
+		updateViewMatrix();
+		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+		updateModelMatrix();
+		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "objectMatrix"), 1, GL_FALSE, glm::value_ptr(objMatrix));
+		
+		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projection));
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -143,4 +173,31 @@ bool compileShader(const char* src, unsigned int shader)
 	}
 	cout << "Shader loaded and compiled succesfully!" << endl;
 	return true;
+}
+
+void updateModelMatrix() 
+{
+	glm::mat4 identity = glm::mat4();
+	glm::mat4 translate = glm::translate(identity, objectPos);
+
+	glm::mat4 rotation = glm::rotate(identity, glm::radians(objectRot.x), glm::vec3(1, 0, 0)) *		//pitch
+						glm::rotate(identity, glm::radians(objectRot.y), glm::vec3(0, 1, 0)) *		//yaw
+						glm::rotate(identity, glm::radians(objectRot.z), glm::vec3(0, 0, 1));		//roll
+
+	glm::mat4 scale = glm::scale(identity, objectScl);
+
+	objMatrix = translate * rotation * scale;
+}
+
+void updateViewMatrix() 
+{
+	glm::mat4 identity = glm::mat4();
+	glm::mat4 translate = glm::translate(identity, camPos);
+
+
+	glm::mat4 rotation = glm::rotate(identity, glm::radians(camRot.x), glm::vec3(1, 0, 0)) *	//pitch
+						glm::rotate(identity, glm::radians(camRot.y), glm::vec3(0, 1, 0)) *		//yaw
+						glm::rotate(identity, glm::radians(camRot.z), glm::vec3(0, 0, 1));		//roll
+
+	viewMatrix = (translate * rotation);
 }
