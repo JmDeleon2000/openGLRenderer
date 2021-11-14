@@ -7,6 +7,7 @@
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
 
+#define lookAtEnabled true
 
 using namespace std;
 //rendering
@@ -15,19 +16,30 @@ const int screen_width = 1920;
 const char* vertexShdFile = "vertex.glsl";
 const char* fragmentShdFile = "fragment.glsl";
 //object
-glm::vec3 objectPos = glm::vec3(0, 0, -10);
+glm::vec3 objectPos = glm::vec3(0, 0, 0);
 glm::vec3 objectRot = glm::vec3(0, 0, 0);
 glm::vec3 objectScl = glm::vec3(1, 1, 1);
 glm::mat4 objMatrix;
 //camera
-glm::vec3 camPos = glm::vec3(0, 0, 0);
+glm::vec3 camPos = glm::vec3(0, 0, 10);
 glm::vec3 camRot = glm::vec3(0, 0, 0);
+glm::vec3 cameraTarget = glm::vec3(0, 0, 0);
+#if lookAtEnabled
+//https://learnopengl.com/Getting-started/Camera
+//https://learnopengl.com/code_viewer_gh.php?code=src/1.getting_started/7.4.camera_class/camera_class.cpp
+glm::vec3 cameraDirection = glm::normalize(camPos - cameraTarget);
+glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+float cameraZoom = 60.0f;
+const float cameraDist = 10;
+#endif
 glm::mat4 projection;
 glm::mat4 viewMatrix;
 
-float pitch = 0, yaw = 0, roll = 0;
+double deltaTime = 1;
 
-void input(GLFWwindow* w);
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
 bool compileShader(const char* src, unsigned int shader);
 void updateModelMatrix();
 void updateViewMatrix();
@@ -50,6 +62,7 @@ int main(void)
 	cout << "Window created succesfuly" << endl;
 
 	glfwMakeContextCurrent(window);
+	glfwSetKeyCallback(window, key_callback);
 
 	if (glewInit() != GLEW_OK)
 	{
@@ -81,21 +94,34 @@ int main(void)
 	glDeleteShader(vertShader);
 	glDeleteShader(fragShader);
 
+	glEnable(GL_DEPTH_TEST);
 
 	float vertices[] = {
 		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 
 		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  
-		 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f  
+		 0.0f,  0.5f, -0.25f, 0.0f, 0.0f, 1.0f,
+		 0.0f,  -0.5f, -0.9f, 0.0f, 0.0f, 0.0f
 	};
+
+	unsigned int index_data[] = {
+		0, 1, 2,
+		0, 3, 2,
+		1, 3, 2,
+		0, 3, 1};
 
 	unsigned int VBO /*Vertex Buffer Object*/;
 	unsigned int VAO /*Vertex Array Object*/;
+	unsigned int EAO /*Element Array Object*/;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EAO);
 	
 	
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EAO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
 
 	glBindVertexArray(VAO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
@@ -105,32 +131,47 @@ int main(void)
 	glBindVertexArray(0);
 
 	//camera
-	projection = glm::perspective<float>(glm::radians(60.0f), 
-								screen_width/screen_height,
-								0.1,
-								1000);
+	projection = glm::perspective(glm::radians(60.0f), 
+								(float)((float)screen_width/(float)screen_height),
+								0.1f,
+								1000.0f);
+	const double limitFPS = 60.0;
+	double currTime = 0, lastFrame = 0;
 
 	while (!glfwWindowShouldClose(window))
 	{
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		//Legacy OpenGL
-		//glBegin(GL_TRIANGLES);
-		//glVertex2d(-0.5f, -0.5f);
-		//glVertex2d(0.0f, 0.5f);
-		//glVertex2d(0.5f, -0.5f);
-		//glEnd();
+
+#if lookAtEnabled
+		projection = glm::perspective(glm::radians(cameraZoom),
+			(float)((float)screen_width / (float)screen_height),
+			0.1f,
+			1000.0f);
+#endif
+
+		currTime = glfwGetTime();
+		deltaTime = (currTime - lastFrame) * limitFPS;
+		lastFrame = currTime;
+
+		//camera
+		cameraDirection = glm::normalize(camPos - cameraTarget);
+		cameraRight = glm::normalize(glm::cross(up, cameraDirection));
+		cameraUp = glm::cross(cameraDirection, cameraRight);
 		
 		glUseProgram(shdProgram);
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
 		updateViewMatrix();
 		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
 		updateModelMatrix();
-		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "objectMatrix"), 1, GL_FALSE, glm::value_ptr(objMatrix));
+		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(objMatrix));
 		
 		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projection));
+		
+		glUniform1f(glGetUniformLocation(shdProgram, "appTime"), (float)glfwGetTime());
 
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		glDrawElements(GL_TRIANGLES, sizeof(index_data)/sizeof(unsigned int), GL_UNSIGNED_INT, index_data);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -169,6 +210,7 @@ bool compileShader(const char* src, unsigned int shader)
 	{
 		glGetShaderInfoLog(shader, 512, NULL, infoLog);
 		cout << "Error:" << endl;
+		cout << infoLog << endl;
 		return false;
 	}
 	cout << "Shader loaded and compiled succesfully!" << endl;
@@ -177,7 +219,7 @@ bool compileShader(const char* src, unsigned int shader)
 
 void updateModelMatrix() 
 {
-	glm::mat4 identity = glm::mat4();
+	glm::mat4 identity = glm::mat4(1);
 	glm::mat4 translate = glm::translate(identity, objectPos);
 
 	glm::mat4 rotation = glm::rotate(identity, glm::radians(objectRot.x), glm::vec3(1, 0, 0)) *		//pitch
@@ -188,10 +230,17 @@ void updateModelMatrix()
 
 	objMatrix = translate * rotation * scale;
 }
-
+#if lookAtEnabled
 void updateViewMatrix() 
 {
-	glm::mat4 identity = glm::mat4();
+	viewMatrix = glm::lookAt(camPos,				//position
+							objectPos,				//target
+							glm::vec3(0, 1, 0));	//up
+}
+#else
+void updateViewMatrix()
+{
+	glm::mat4 identity = glm::mat4(1);
 	glm::mat4 translate = glm::translate(identity, camPos);
 
 
@@ -199,5 +248,40 @@ void updateViewMatrix()
 						glm::rotate(identity, glm::radians(camRot.y), glm::vec3(0, 1, 0)) *		//yaw
 						glm::rotate(identity, glm::radians(camRot.z), glm::vec3(0, 0, 1));		//roll
 
-	viewMatrix = (translate * rotation);
+	viewMatrix = glm::inverse(translate * rotation);
+}
+#endif
+
+
+float zoomSpeed = 20;
+float rotateSpeed = 20;
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) 
+{
+	if (action == GLFW_REPEAT) 
+	{
+		switch (key)
+		{
+		case GLFW_KEY_Q:
+			cameraZoom -= zoomSpeed * deltaTime;
+			break;
+		case GLFW_KEY_E:
+			cameraZoom += zoomSpeed * deltaTime;
+			break;
+		case GLFW_KEY_A:
+			camPos -= cameraRight * (float)(rotateSpeed * deltaTime);
+			break;
+		case GLFW_KEY_D:
+			camPos += cameraRight * (float)(rotateSpeed * deltaTime);
+			break;
+		case GLFW_KEY_W:
+			camPos += cameraUp * (float)(rotateSpeed * deltaTime);
+			break;
+		case GLFW_KEY_S:
+			camPos -= cameraUp * (float)(rotateSpeed * deltaTime);
+			break;
+		default:
+			break;
+		}
+		camPos = glm::normalize(camPos) * cameraDist; //TODO arreglar precisión
+	}
 }
