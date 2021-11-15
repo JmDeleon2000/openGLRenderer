@@ -267,9 +267,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		{
 		case GLFW_KEY_Q:
 			cameraZoom -= zoomSpeed * deltaTime;
+			cameraZoom = cameraZoom > 10 ? cameraZoom : 10;
 			break;
 		case GLFW_KEY_E:
 			cameraZoom += zoomSpeed * deltaTime;
+			cameraZoom = cameraZoom < 90 ? cameraZoom : 90;
+
 			break;
 		case GLFW_KEY_A:
 			camPos -= cameraRight * (float)(rotateSpeed * deltaTime);
