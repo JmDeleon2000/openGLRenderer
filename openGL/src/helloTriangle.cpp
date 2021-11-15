@@ -97,17 +97,21 @@ int main(void)
 	glEnable(GL_DEPTH_TEST);
 
 	float vertices[] = {
-		-0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 
-		 0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,  
-		 0.0f,  0.5f, -0.25f, 0.0f, 0.0f, 1.0f,
-		 0.0f,  -0.5f, -0.9f, 0.0f, 0.0f, 0.0f
+		-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 
+		 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f,  
+		 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+		 -0.5f,  -0.5f, -0.5f, 1.0f, 0.0f, 1.0f,
+		 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 1.0f
 	};
 
 	unsigned int index_data[] = {
 		0, 1, 2,
-		0, 3, 2,
-		1, 3, 2,
-		0, 3, 1};
+		0, 3, 1, 
+		3, 1, 4,
+		4, 2, 1,
+		3, 2, 4,
+		0, 2, 3
+	};
 
 	unsigned int VBO /*Vertex Buffer Object*/;
 	unsigned int VAO /*Vertex Array Object*/;

@@ -10,7 +10,8 @@ uniform float appTime;
 out vec3 outColor;
 void main()
 {
-    vec4 pos = vec4(position.x * (2 + sin(appTime)), position.y, position.z * (2 + sin(appTime)), 1.0);
+    //vec4 pos = vec4(position.x * (2 + sin(appTime)), position.y, position.z * (2 + sin(appTime)), 1.0);
+    vec4 pos = vec4(position.x , position.y, position.z, 1.0);
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * pos;
     outColor = inColor;
 }
