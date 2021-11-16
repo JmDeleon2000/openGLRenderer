@@ -9,6 +9,8 @@
 
 #define lookAtEnabled true
 
+#define SIZEOFARRAY(a) sizeof(a)/sizeof(a[0])
+
 using namespace std;
 //rendering
 const int screen_height = 1080;
@@ -45,15 +47,15 @@ void updateModelMatrix();
 void updateViewMatrix();
 
 //https://www.youtube.com/watch?v=OR4fNpBjmq8
-int main(void) 
+int main(void)
 {
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
 
-	
+
 	window = glfwCreateWindow(screen_width, screen_height, "Hello Triangle!", NULL, NULL);
-	if (!window) 
+	if (!window)
 	{
 		cout << "Failed to create GLFW window" << endl;
 		glfwTerminate();
@@ -75,7 +77,7 @@ int main(void)
 	int success;
 	unsigned int vertShader = glCreateShader(GL_VERTEX_SHADER);
 	unsigned int fragShader = glCreateShader(GL_FRAGMENT_SHADER);
-	
+
 	if (!compileShader(vertexShdFile, vertShader)) return -1;
 	if (!compileShader(fragmentShdFile, fragShader)) return -1;
 
@@ -85,7 +87,7 @@ int main(void)
 	glLinkProgram(shdProgram);
 
 	glGetProgramiv(shdProgram, GL_LINK_STATUS, &success);
-	if (!success) 
+	if (!success)
 	{
 		glGetProgramInfoLog(shdProgram, 512, NULL, infoLog);
 		cout << "Error:" << endl << infoLog << endl;
@@ -95,6 +97,8 @@ int main(void)
 	glDeleteShader(fragShader);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	float vertices[] = {
 		-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 
@@ -175,7 +179,7 @@ int main(void)
 		glUniform1f(glGetUniformLocation(shdProgram, "appTime"), (float)glfwGetTime());
 
 		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		glDrawElements(GL_TRIANGLES, sizeof(index_data)/sizeof(unsigned int), GL_UNSIGNED_INT, index_data);
+		glDrawElements(GL_TRIANGLES, SIZEOFARRAY(index_data), GL_UNSIGNED_INT, index_data);
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
