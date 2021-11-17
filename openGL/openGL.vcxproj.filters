@@ -15,19 +15,27 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\helloTriangle.cpp">
+    <ClCompile Include="src\renderer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\models.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="src\stb_image_imp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="vertex.glsl" />
-    <None Include="fragment.glsl" />
+    <None Include="glitchTransformVertex.glsl" />
+    <None Include="glitchTransformFrag.glsl" />
+    <None Include="toonVertex.glsl" />
+    <None Include="toonFrag.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\models.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

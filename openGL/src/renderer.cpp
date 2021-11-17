@@ -6,6 +6,9 @@
 #include <glm.hpp>
 #include <gtc/matrix_transform.hpp>
 #include <gtc/type_ptr.hpp>
+#include "stb_image.h"
+#include "models.h"
+
 
 #define lookAtEnabled true
 
@@ -15,8 +18,8 @@ using namespace std;
 //rendering
 const int screen_height = 1080;
 const int screen_width = 1920;
-const char* vertexShdFile = "vertex.glsl";
-const char* fragmentShdFile = "fragment.glsl";
+const char* vertexShdFile = "glitchTransformVertex.glsl";
+const char* fragmentShdFile = "glitchTransformFrag.glsl";
 //object
 glm::vec3 objectPos = glm::vec3(0, 0, 0);
 glm::vec3 objectRot = glm::vec3(0, 0, 0);
@@ -45,6 +48,26 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 bool compileShader(const char* src, unsigned int shader);
 void updateModelMatrix();
 void updateViewMatrix();
+bool compileProgram(const char* vertSrc, const char* fragSrc, unsigned int* shader);
+class Texture
+{
+public:
+	int img_width, img_height, img_BPP;
+	void* img_buffer_ptr;
+	unsigned int img_opGLID;
+public:
+	Texture(const char* path, unsigned int slot);
+	~Texture();
+
+};
+
+
+unsigned int activeShader = -1;
+unsigned int shdProgram = -1;
+unsigned int shdProgram1 = -1;
+unsigned int shdProgram2 = -1;
+unsigned int shdProgram3 = -1;
+
 
 //https://www.youtube.com/watch?v=OR4fNpBjmq8
 int main(void)
@@ -52,7 +75,6 @@ int main(void)
 	GLFWwindow* window;
 	if (!glfwInit())
 		return -1;
-
 
 	window = glfwCreateWindow(screen_width, screen_height, "Hello Triangle!", NULL, NULL);
 	if (!window)
@@ -73,78 +95,52 @@ int main(void)
 	}
 	cout << "OpenGL Version: " << glGetString(GL_VERSION) << endl;
 
-	char infoLog[512];
-	int success;
-	unsigned int vertShader = glCreateShader(GL_VERTEX_SHADER);
-	unsigned int fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	if (!compileProgram(vertexShdFile, fragmentShdFile, &shdProgram)) return -1;
+	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram1)) return -1;
+	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram2)) return -1;
+	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram3)) return -1;
 
-	if (!compileShader(vertexShdFile, vertShader)) return -1;
-	if (!compileShader(fragmentShdFile, fragShader)) return -1;
+	activeShader = shdProgram;
 
-	unsigned int shdProgram = glCreateProgram();
-	glAttachShader(shdProgram, vertShader);
-	glAttachShader(shdProgram, fragShader);
-	glLinkProgram(shdProgram);
+	Texture* model_tex = new Texture("model.bmp", 0);
+	unsigned int activeTexture = model_tex->img_opGLID;
 
-	glGetProgramiv(shdProgram, GL_LINK_STATUS, &success);
-	if (!success)
-	{
-		glGetProgramInfoLog(shdProgram, 512, NULL, infoLog);
-		cout << "Error:" << endl << infoLog << endl;
-		return -1;
-	}
-	glDeleteShader(vertShader);
-	glDeleteShader(fragShader);
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	float vertices[] = {
-		-0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.0f, 
-		 0.5f, -0.5f, 0.5f, 0.0f, 1.0f, 0.0f,  
-		 0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-		 -0.5f,  -0.5f, -0.5f, 1.0f, 0.0f, 1.0f,
-		 0.5f,  -0.5f, -0.5f, 0.0f, 1.0f, 1.0f
-	};
+	unsigned int VAO; //vertex array object
+	unsigned int VBO; //vertex buffer object
 
-	unsigned int index_data[] = {
-		0, 1, 2,
-		0, 3, 1, 
-		3, 1, 4,
-		4, 2, 1,
-		3, 2, 4,
-		0, 2, 3
-	};
+	Model* model_to_render = new Model("model.obj");
 
-	unsigned int VBO /*Vertex Buffer Object*/;
-	unsigned int VAO /*Vertex Array Object*/;
-	unsigned int EAO /*Element Array Object*/;
-	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EAO);
-	
-	
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EAO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(index_data), index_data, GL_STATIC_DRAW);
-
+	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glBufferData(GL_ARRAY_BUFFER, model_to_render->faceCount * 24 * sizeof(float), model_to_render->mainBuffer, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * 4));
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 3));
 	glEnableVertexAttribArray(1);
-	glBindVertexArray(0);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)(sizeof(float) * 6));
+	glEnableVertexAttribArray(2);
 
 	//camera
-	projection = glm::perspective(glm::radians(60.0f), 
-								(float)((float)screen_width/(float)screen_height),
+	projection = glm::perspective(glm::radians(60.0f),
+								(float)((float)screen_width / (float)screen_height),
 								0.1f,
 								1000.0f);
+
+
 	const double limitFPS = 60.0;
 	double currTime = 0, lastFrame = 0;
+
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -166,20 +162,22 @@ int main(void)
 		cameraDirection = glm::normalize(camPos - cameraTarget);
 		cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 		cameraUp = glm::cross(cameraDirection, cameraRight);
-		
-		glUseProgram(shdProgram);
-		glBindVertexArray(VAO);
-		updateViewMatrix();
-		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
-		updateModelMatrix();
-		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(objMatrix));
-		
-		glUniformMatrix4fv(glGetUniformLocation(shdProgram, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projection));
-		
-		glUniform1f(glGetUniformLocation(shdProgram, "appTime"), (float)glfwGetTime());
+				
+		glUseProgram(activeShader);
 
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
-		glDrawElements(GL_TRIANGLES, SIZEOFARRAY(index_data), GL_UNSIGNED_INT, index_data);
+
+		updateViewMatrix();
+		glUniformMatrix4fv(glGetUniformLocation(activeShader, "viewMatrix"), 1, GL_FALSE, glm::value_ptr(viewMatrix));
+		updateModelMatrix();
+		glUniformMatrix4fv(glGetUniformLocation(activeShader, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(objMatrix));
+		
+		glUniformMatrix4fv(glGetUniformLocation(activeShader, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projection));
+		
+		glUniform1f(glGetUniformLocation(activeShader, "appTime"), (float)glfwGetTime());
+		glUniform3f(glGetUniformLocation(activeShader, "lightSrc"), -10, 0, 2);
+
+		glDrawArrays(GL_TRIANGLES, 0, model_to_render->faceCount * 3);
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
@@ -190,6 +188,32 @@ int main(void)
 
 	glfwTerminate();
 	return 0;
+}
+
+bool compileProgram(const char* vertSrc, const char* fragSrc, unsigned int* shader)
+{
+	unsigned int vertShader = glCreateShader(GL_VERTEX_SHADER);
+	unsigned int fragShader = glCreateShader(GL_FRAGMENT_SHADER);
+	if (!compileShader(vertSrc, vertShader)) return false;
+	if (!compileShader(fragSrc, fragShader)) return false;
+	*shader = glCreateProgram();
+
+	glAttachShader(*shader, vertShader);
+	glAttachShader(*shader, fragShader);
+	glLinkProgram(*shader);
+
+	char infoLog[512];
+	int success;
+	glGetProgramiv(*shader, GL_LINK_STATUS, &success);
+	if (!success)
+	{
+		glGetProgramInfoLog(*shader, 512, NULL, infoLog);
+		cout << "Error:" << endl << infoLog << endl;
+		return -1;
+	}
+	glDeleteShader(vertShader);
+	glDeleteShader(fragShader);
+	return true;
 }
 
 bool compileShader(const char* src, unsigned int shader)
@@ -262,13 +286,14 @@ void updateViewMatrix()
 
 
 float zoomSpeed = 20;
-float rotateSpeed = 20;
+float rotateSpeed = 10;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) 
 {
 	if (action == GLFW_REPEAT) 
 	{
 		switch (key)
 		{
+			//zoom
 		case GLFW_KEY_Q:
 			cameraZoom -= zoomSpeed * deltaTime;
 			cameraZoom = cameraZoom > 10 ? cameraZoom : 10;
@@ -276,8 +301,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		case GLFW_KEY_E:
 			cameraZoom += zoomSpeed * deltaTime;
 			cameraZoom = cameraZoom < 90 ? cameraZoom : 90;
-
 			break;
+			// move camera
 		case GLFW_KEY_A:
 			camPos -= cameraRight * (float)(rotateSpeed * deltaTime);
 			break;
@@ -295,4 +320,51 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		}
 		camPos = glm::normalize(camPos) * cameraDist; //TODO arreglar precisión
 	}
+	if (action == GLFW_PRESS) 
+	{
+		switch (key)
+		{
+			//shader swap
+		case GLFW_KEY_0:
+			activeShader = shdProgram;
+			break;
+		case GLFW_KEY_1:
+			activeShader = shdProgram1;
+			break;
+		case GLFW_KEY_2:
+			activeShader = shdProgram2;
+			break;
+		case GLFW_KEY_3:
+			activeShader = shdProgram3;
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+Texture::Texture(const char* path, unsigned int slot = 0)
+{
+	stbi_set_flip_vertically_on_load(1);
+	img_buffer_ptr = stbi_load(path, &img_width, &img_height, &img_BPP, 4);
+	glGenTextures(1, &img_opGLID);
+	glBindTexture(GL_TEXTURE_2D, img_opGLID);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);	//WRAP HORIZONTAL
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);	//WRAP VERTICAL
+
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, img_width, img_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_buffer_ptr);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glActiveTexture(GL_TEXTURE + slot);
+	//glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+Texture::~Texture()
+{
+	glDeleteTextures(1, &img_opGLID);
+	if (img_buffer_ptr)
+		stbi_image_free(img_buffer_ptr);
 }
