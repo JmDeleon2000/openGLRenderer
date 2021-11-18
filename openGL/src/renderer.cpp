@@ -97,7 +97,7 @@ int main(void)
 
 	if (!compileProgram(vertexShdFile, fragmentShdFile, &shdProgram)) return -1;
 	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram1)) return -1;
-	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram2)) return -1;
+	if (!compileProgram("MandelbrotVertex.glsl", "MandelbrotFrag.glsl", &shdProgram2)) return -1;
 	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram3)) return -1;
 
 	activeShader = shdProgram;
@@ -325,16 +325,16 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		switch (key)
 		{
 			//shader swap
-		case GLFW_KEY_0:
+		case GLFW_KEY_1:
 			activeShader = shdProgram;
 			break;
-		case GLFW_KEY_1:
+		case GLFW_KEY_2:
 			activeShader = shdProgram1;
 			break;
-		case GLFW_KEY_2:
+		case GLFW_KEY_3:
 			activeShader = shdProgram2;
 			break;
-		case GLFW_KEY_3:
+		case GLFW_KEY_4:
 			activeShader = shdProgram3;
 			break;
 		default:

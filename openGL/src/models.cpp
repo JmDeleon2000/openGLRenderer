@@ -7,8 +7,9 @@ using namespace std;
 
 Model::Model(const char* path) 
 {
+	int i = 0, ws;
 	fstream fileStream;
-	string line;
+	string line, vtfixbuffer;
 	string fverts, fuv, fnormals, ffaces;
 
 	fileStream.open(path, ios::in);
@@ -27,7 +28,13 @@ Model::Model(const char* path)
 		if (line[0] == 'v' && line[1] == 't')
 		{
 			line.erase(0, 3);
-			fuv.append(line + ' ');
+			ws = line.find(' ');
+			vtfixbuffer = line.substr(0, ws) + ' ';
+			line.erase(0, ws + 1);
+			ws = line.find(' ');
+			vtfixbuffer.append(line.substr(0, ws + 1));
+			//cout << vtfixbuffer;
+			fuv.append(vtfixbuffer);
 			uvCount+=2;
 			continue;
 		}
@@ -48,7 +55,6 @@ Model::Model(const char* path)
 	fileStream.close();
 
 	verts = new float[vertCount];
-	int i = 0, ws;
 	while (i < vertCount)
 	{
 		ws = fverts.find(' ');

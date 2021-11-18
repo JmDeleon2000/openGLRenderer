@@ -152,6 +152,8 @@
   <ItemGroup>
     <None Include="glitchTransformFrag.glsl" />
     <None Include="glitchTransformVertex.glsl" />
+    <None Include="MandelbrotFrag.glsl" />
+    <None Include="MandelbrotVertex.glsl" />
     <None Include="toonFrag.glsl" />
     <None Include="toonVertex.glsl" />
   </ItemGroup>

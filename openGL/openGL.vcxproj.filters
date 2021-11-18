@@ -30,6 +30,8 @@
     <None Include="glitchTransformFrag.glsl" />
     <None Include="toonVertex.glsl" />
     <None Include="toonFrag.glsl" />
+    <None Include="MandelbrotFrag.glsl" />
+    <None Include="MandelbrotVertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\models.h">
