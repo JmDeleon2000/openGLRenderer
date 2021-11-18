@@ -9,7 +9,7 @@ uniform mat4 projectionMatrix;
 
 uniform float appTime;
 
-//uniform float mandelbrotZoom;
+uniform float mandelbrotZoom;
 //uniform float mandelbrotIterations;
 
 out float ZOOM;
@@ -19,16 +19,16 @@ void main()
 {
     //shd standard
     mat4 objectToWorld = projectionMatrix * viewMatrix * modelMatrix;
-    vec4 pos = vec4(position*2, 1);
+    vec4 pos = vec4(position * 2, 1);
     vec4 norm = vec4(normal, 0);
     norm = modelMatrix * norm;
     vec4 worldPos = objectToWorld * pos;
     gl_Position = worldPos;
     //end shd standard
 
-    //ZOOM = mandelbrotZoom;
+    ZOOM = mandelbrotZoom;
     //ITERATIONS = mandelbrotIterations;
-    ZOOM = 0;
+    //ZOOM = 0;
     ITERATIONS = 800;
     UV = uv;
 }

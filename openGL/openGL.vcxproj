@@ -150,6 +150,8 @@
     <ClCompile Include="src\stb_image_imp.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="specularFrag.glsl" />
+    <None Include="specularVertex.glsl" />
     <None Include="glitchTransformFrag.glsl" />
     <None Include="glitchTransformVertex.glsl" />
     <None Include="MandelbrotFrag.glsl" />

@@ -14,7 +14,7 @@ in float ITERATIONS;
 void main()
 {
     if (ITERATIONS < 1) discard;
-    vec2 C = (UV - 0.5) * 2;
+    vec2 C = (UV - 0.5) * ZOOM;
     //C = step(0.0, C);
     //fragColor = vec4(C.x, C.y, 0, 1);
     float mandelbrot, f_length;

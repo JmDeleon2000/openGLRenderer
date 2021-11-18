@@ -38,6 +38,7 @@ glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
 float cameraZoom = 60.0f;
 const float cameraDist = 10;
+float mandelbrotZoom = 2;
 #endif
 glm::mat4 projection;
 glm::mat4 viewMatrix;
@@ -76,7 +77,7 @@ int main(void)
 	if (!glfwInit())
 		return -1;
 
-	window = glfwCreateWindow(screen_width, screen_height, "Hello Triangle!", NULL, NULL);
+	window = glfwCreateWindow(screen_width, screen_height, "Model viewer", NULL, NULL);
 	if (!window)
 	{
 		cout << "Failed to create GLFW window" << endl;
@@ -98,7 +99,7 @@ int main(void)
 	if (!compileProgram(vertexShdFile, fragmentShdFile, &shdProgram)) return -1;
 	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram1)) return -1;
 	if (!compileProgram("MandelbrotVertex.glsl", "MandelbrotFrag.glsl", &shdProgram2)) return -1;
-	if (!compileProgram("toonVertex.glsl", "toonFrag.glsl", &shdProgram3)) return -1;
+	if (!compileProgram("specularVertex.glsl", "specularFrag.glsl", &shdProgram3)) return -1;
 
 	activeShader = shdProgram;
 
@@ -174,7 +175,9 @@ int main(void)
 		glUniformMatrix4fv(glGetUniformLocation(activeShader, "projectionMatrix"), 1, GL_FALSE, glm::value_ptr(projection));
 		
 		glUniform1f(glGetUniformLocation(activeShader, "appTime"), (float)glfwGetTime());
-		glUniform3f(glGetUniformLocation(activeShader, "lightSrc"), -10, 0, 2);
+		glUniform1f(glGetUniformLocation(activeShader, "mandelbrotZoom"), mandelbrotZoom);
+		glUniform4f(glGetUniformLocation(activeShader, "lightSrc"), -10, 0, 2, 1);
+		glUniform3f(glGetUniformLocation(activeShader, "lightSrc"), camPos.x, camPos.y , camPos.z);
 
 		glDrawArrays(GL_TRIANGLES, 0, model_to_render->faceCount * 3);
 
@@ -314,6 +317,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			break;
 		case GLFW_KEY_S:
 			camPos -= cameraUp * (float)(rotateSpeed * deltaTime);
+			break;
+		case GLFW_KEY_UP:
+			mandelbrotZoom -= (float)(0.25 * deltaTime);
+			break;
+		case GLFW_KEY_DOWN:
+			mandelbrotZoom += (float)(0.25 * deltaTime);
+			mandelbrotZoom = mandelbrotZoom < 2 ? mandelbrotZoom : 2;
 			break;
 		default:
 			break;

@@ -9,8 +9,10 @@ uniform mat4 projectionMatrix;
 
 uniform float appTime;
 
+uniform vec3 camPos;
 uniform vec4 lightSrc;
 
+out vec3 VIEWDIR;
 out vec4 LIGHTSRC;
 out float lightSRCINT;
 out vec4 NORMAL;
@@ -30,5 +32,6 @@ void main()
     LIGHTSRC = light;
     NORMAL = norm;
     UV = uv;
+    VIEWDIR = normalize(camPos - vec3(worldPos.x, worldPos.y, worldPos.z));
     lightSRCINT = lightSrc.w;
 }

@@ -32,6 +32,8 @@
     <None Include="toonFrag.glsl" />
     <None Include="MandelbrotFrag.glsl" />
     <None Include="MandelbrotVertex.glsl" />
+    <None Include="specularFrag.glsl" />
+    <None Include="specularVertex.glsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\models.h">
