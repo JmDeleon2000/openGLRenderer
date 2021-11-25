@@ -46,6 +46,7 @@ glm::mat4 viewMatrix;
 double deltaTime = 1;
 
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos);
 bool compileShader(const char* src, unsigned int shader);
 void updateModelMatrix();
 void updateViewMatrix();
@@ -69,6 +70,12 @@ unsigned int shdProgram1 = -1;
 unsigned int shdProgram2 = -1;
 unsigned int shdProgram3 = -1;
 
+Model* model1;
+Model* model2;
+Model* model3;
+Model* model4;
+Model* active_model;
+
 
 //https://www.youtube.com/watch?v=OR4fNpBjmq8
 int main(void)
@@ -88,6 +95,7 @@ int main(void)
 
 	glfwMakeContextCurrent(window);
 	glfwSetKeyCallback(window, key_callback);
+	//glfwSetCursorPosCallback(window, cursor_position_callback);
 
 	if (glewInit() != GLEW_OK)
 	{
@@ -114,14 +122,18 @@ int main(void)
 	unsigned int VAO; //vertex array object
 	unsigned int VBO; //vertex buffer object
 
-	Model* model_to_render = new Model("model.obj");
+	model1 = new Model("model.obj");
+	model2 = new Model("sword.obj");
+	model3 = new Model("Rin_(Native).obj");
+	model4 = new Model("rock eli.obj");
+	active_model = model1;
 
 	glGenBuffers(1, &VBO);
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	glBufferData(GL_ARRAY_BUFFER, model_to_render->faceCount * 24 * sizeof(float), model_to_render->mainBuffer, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, active_model->faceCount * 24 * sizeof(float), active_model->mainBuffer, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float) * 8, (void*)0);
 	glEnableVertexAttribArray(0);
@@ -141,7 +153,6 @@ int main(void)
 
 	const double limitFPS = 60.0;
 	double currTime = 0, lastFrame = 0;
-
 
 	while (!glfwWindowShouldClose(window))
 	{
@@ -179,7 +190,8 @@ int main(void)
 		glUniform4f(glGetUniformLocation(activeShader, "lightSrc"), -10, 0, 2, 1);
 		glUniform3f(glGetUniformLocation(activeShader, "lightSrc"), camPos.x, camPos.y , camPos.z);
 
-		glDrawArrays(GL_TRIANGLES, 0, model_to_render->faceCount * 3);
+		glDrawArrays(GL_TRIANGLES, 0, active_model->faceCount * 3);
+
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -303,7 +315,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			break;
 		case GLFW_KEY_E:
 			cameraZoom += zoomSpeed * deltaTime;
-			cameraZoom = cameraZoom < 90 ? cameraZoom : 90;
+			cameraZoom = cameraZoom < 180 ? cameraZoom : 180;
 			break;
 			// move camera
 		case GLFW_KEY_A:
@@ -313,10 +325,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			camPos += cameraRight * (float)(rotateSpeed * deltaTime);
 			break;
 		case GLFW_KEY_W:
-			camPos += cameraUp * (float)(rotateSpeed * deltaTime);
+			if (camPos.y < 3)
+				camPos += cameraUp * (float)(rotateSpeed * deltaTime);
 			break;
 		case GLFW_KEY_S:
-			camPos -= cameraUp * (float)(rotateSpeed * deltaTime);
+			if (camPos.y > -3)
+				camPos -= cameraUp * (float)(rotateSpeed * deltaTime);
 			break;
 		case GLFW_KEY_UP:
 			mandelbrotZoom -= (float)(0.25 * deltaTime);
@@ -347,11 +361,36 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		case GLFW_KEY_4:
 			activeShader = shdProgram3;
 			break;
+		case GLFW_KEY_F1:
+			objectPos = glm::vec3(0, 0, 0);
+			objectScl = glm::vec3(1, 1, 1);
+			active_model = model1;
+			glBufferData(GL_ARRAY_BUFFER, active_model->faceCount * 24 * sizeof(float), active_model->mainBuffer, GL_STATIC_DRAW);
+			break;
+		case GLFW_KEY_F2:
+			objectPos = glm::vec3(0, 0, 0);
+			objectScl = glm::vec3(0.5, 0.5, 0.5);
+			active_model = model2;
+			glBufferData(GL_ARRAY_BUFFER, active_model->faceCount * 24 * sizeof(float), active_model->mainBuffer, GL_STATIC_DRAW);
+			break;
+		case GLFW_KEY_F3:
+			objectPos = glm::vec3(0, -1, 0);
+			objectScl = glm::vec3(1, 1, 1);
+			active_model = model3;
+			glBufferData(GL_ARRAY_BUFFER, active_model->faceCount * 24 * sizeof(float), active_model->mainBuffer, GL_STATIC_DRAW);
+			break;
+		case GLFW_KEY_F4:
+			objectPos = glm::vec3(0, -2, 0);
+			objectScl = glm::vec3(0.1, 0.1, 0.1);
+			active_model = model4;
+			glBufferData(GL_ARRAY_BUFFER, active_model->faceCount * 24 * sizeof(float), active_model->mainBuffer, GL_STATIC_DRAW);
+			break;
 		default:
 			break;
 		}
 	}
 }
+
 
 Texture::Texture(const char* path, unsigned int slot = 0)
 {
